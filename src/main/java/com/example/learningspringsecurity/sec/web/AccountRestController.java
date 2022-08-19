@@ -5,6 +5,7 @@ import com.example.learningspringsecurity.sec.dto.RoleUserForm;
 import com.example.learningspringsecurity.sec.entity.AppRole;
 import com.example.learningspringsecurity.sec.entity.AppUser;
 import com.example.learningspringsecurity.sec.service.AccountService;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class AccountRestController {
         this.accountService = accountService;
     }
     @GetMapping("/users")
+    @PostAuthorize("hasAuthority('USER')")
     public List<AppUser> getAllUsers()
     {
         return accountService.listUsers();
@@ -26,12 +28,14 @@ public class AccountRestController {
 
 
     @PostMapping("/users")
+    @PostAuthorize("hasAuthority('ADMIN')")
     public AppUser saveUser(@RequestBody AppUser appUser)
     {
         return accountService.addNewUser(appUser);
     }
 
     @PostMapping("/roles")
+    @PostAuthorize("hasAuthority('ADMIN')")
     public AppRole saveRole(@RequestBody AppRole appRole)
     {
         return accountService.addNewRole(appRole);
