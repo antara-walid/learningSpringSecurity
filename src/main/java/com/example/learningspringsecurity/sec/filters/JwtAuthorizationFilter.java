@@ -4,6 +4,8 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.learningspringsecurity.sec.JWTUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -18,6 +20,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 
+@Slf4j
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
     @Override
@@ -27,14 +30,15 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         {
             filterChain.doFilter(request,response);
         }else {
-            String authorizationToken = request.getHeader("Authorization");
-            if (authorizationToken != null && authorizationToken.startsWith("Bearer ")) {
+            String authorizationToken = request.getHeader(JWTUtil.AUT_HEADER);
+            if (authorizationToken != null && authorizationToken.startsWith(JWTUtil.PREFIX)) {
                 try {
-                    String jwt = authorizationToken.substring(7);
-                    Algorithm algorithm = Algorithm.HMAC256("mySecretKey");
+                    String jwt = authorizationToken.substring(JWTUtil.PREFIX.length());
+                    Algorithm algorithm = Algorithm.HMAC256(JWTUtil.SECRET);
                     JWTVerifier jwtVerifier = JWT.require(algorithm).build();
                     DecodedJWT decodedJWT = jwtVerifier.verify(jwt);
-                    String userName = decodedJWT.getIssuer();
+                    String userName = decodedJWT.getSubject();
+                    log.info("issuer {}",userName);
                     String[] roles = decodedJWT.getClaim("roles").asArray(String.class);
                     Collection<GrantedAuthority> grantedAuthorities = new ArrayList<>();
                     for (String role : roles) {
@@ -43,12 +47,14 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                     UsernamePasswordAuthenticationToken authenticationtoken =
                             new UsernamePasswordAuthenticationToken(userName, null, grantedAuthorities);
                     SecurityContextHolder.getContext().setAuthentication(authenticationtoken);
+                    logger.info("in authorizaton filter");
                     filterChain.doFilter(request, response);
                 } catch (Exception ex) {
                     response.setHeader("error-message", ex.getMessage());
                     response.sendError(HttpServletResponse.SC_FORBIDDEN);
                 }
             } else {
+                logger.info("this is else block of authorization filter");
                 filterChain.doFilter(request, response);
             }
         }

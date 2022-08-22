@@ -4,6 +4,7 @@ import com.example.learningspringsecurity.sec.entity.AppUser;
 import com.example.learningspringsecurity.sec.filters.JwtAuthenticationFilter;
 import com.example.learningspringsecurity.sec.filters.JwtAuthorizationFilter;
 import com.example.learningspringsecurity.sec.service.AccountService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +24,7 @@ import java.util.Collection;
 
 @Configuration
 @EnableWebSecurity
+@Slf4j
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
@@ -32,6 +34,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         // specify the users that can access resources
         auth.userDetailsService(username -> {
+            log.info("in configure this is username : {}",username);
             AppUser appUser = accountService.loadUserByUserName(username);
             Collection<GrantedAuthority> authorities = new ArrayList<>();
             appUser.getAppRoles().forEach(role -> authorities.add(new SimpleGrantedAuthority(role.getRoleName())));
