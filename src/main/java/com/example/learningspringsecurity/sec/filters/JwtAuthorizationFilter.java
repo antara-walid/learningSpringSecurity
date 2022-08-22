@@ -23,30 +23,39 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        String authorizationToken = request.getHeader("Authorization");
-        if (authorizationToken != null && authorizationToken.startsWith("Bearer ")) {
-            try {
-                String jwt = authorizationToken.substring(7);
-                Algorithm algorithm = Algorithm.HMAC256("mySecretKey");
-                JWTVerifier jwtVerifier = JWT.require(algorithm).build();
-                DecodedJWT decodedJWT = jwtVerifier.verify(jwt);
-                String userName = decodedJWT.getIssuer();
-                String[] roles = decodedJWT.getClaim("roles").asArray(String.class);
-                Collection<GrantedAuthority> grantedAuthorities = new ArrayList<>();
-                for (String role : roles) {
-                    grantedAuthorities.add(new SimpleGrantedAuthority(role));
+        if(request.getServletPath().equals("/refreshToken"))
+        {
+            filterChain.doFilter(request,response);
+        }else {
+            String authorizationToken = request.getHeader("Authorization");
+            if (authorizationToken != null && authorizationToken.startsWith("Bearer ")) {
+                try {
+                    String jwt = authorizationToken.substring(7);
+                    Algorithm algorithm = Algorithm.HMAC256("mySecretKey");
+                    JWTVerifier jwtVerifier = JWT.require(algorithm).build();
+                    DecodedJWT decodedJWT = jwtVerifier.verify(jwt);
+                    String userName = decodedJWT.getIssuer();
+                    String[] roles = decodedJWT.getClaim("roles").asArray(String.class);
+                    Collection<GrantedAuthority> grantedAuthorities = new ArrayList<>();
+                    for (String role : roles) {
+                        grantedAuthorities.add(new SimpleGrantedAuthority(role));
+                    }
+                    UsernamePasswordAuthenticationToken authenticationtoken =
+                            new UsernamePasswordAuthenticationToken(userName, null, grantedAuthorities);
+                    SecurityContextHolder.getContext().setAuthentication(authenticationtoken);
+                    filterChain.doFilter(request, response);
+                } catch (Exception ex) {
+                    response.setHeader("error-message", ex.getMessage());
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN);
                 }
-                UsernamePasswordAuthenticationToken authenticationtoken =
-                        new UsernamePasswordAuthenticationToken(userName, null, grantedAuthorities);
-                SecurityContextHolder.getContext().setAuthentication(authenticationtoken);
+            } else {
                 filterChain.doFilter(request, response);
-            } catch (Exception ex) {
-                response.setHeader("error-message", ex.getMessage());
-                response.sendError(HttpServletResponse.SC_FORBIDDEN);
             }
-        } else {
-            filterChain.doFilter(request, response);
         }
+
+
+
+
     }
 }
 
